@@ -5,6 +5,19 @@
 
 import { Group, co, z } from "jazz-tools";
 
+export { co };
+
+/** Activity CoMap */
+export const Activity = co.map({
+  name: z.string(),
+});
+
+/** Organization CoMap */
+export const Organization = co.map({
+  name: z.string(),
+  activities: co.list(Activity),
+});
+
 /** The account profile is an app-specific per-user public `CoMap`
  *  where you can store top-level objects for that user */
 export const JazzProfile = co.profile({
@@ -21,6 +34,7 @@ export const JazzProfile = co.profile({
  *  where you can store top-level objects for that user */
 export const AccountRoot = co.map({
   dateOfBirth: z.date(),
+  organizations: co.list(Organization),
 });
 
 export function getUserAge(root: co.loaded<typeof AccountRoot> | undefined) {
@@ -53,9 +67,10 @@ export const JazzAccount = co
      *  You can use it to set up the account root and any other initial CoValues you need.
      */
     if (!account.$jazz.has("root")) {
-      account.$jazz.set("root", {
+      account.$jazz.set("root", AccountRoot.create({
         dateOfBirth: new Date("1/1/1990"),
-      });
+        organizations: co.list(Organization).create([]),
+      }));
     }
 
     if (!account.$jazz.has("profile")) {
