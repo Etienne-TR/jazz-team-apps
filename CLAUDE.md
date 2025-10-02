@@ -42,28 +42,28 @@ Jazz uses CoValues (Collaborative Values) for data structures:
 
 ### Development
 ```bash
-pnpm dev              # Start dev server (already running externally)
-pnpm build            # Type-check and build for production
-pnpm preview          # Preview production build
+bun dev              # Start dev server (already running externally)
+bun build            # Type-check and build for production
+bun preview          # Preview production build
 ```
 
 ### Code Quality
 ```bash
-pnpm check            # Run Svelte type checking
-pnpm check:watch      # Run type checking in watch mode
-pnpm format           # Format code with Prettier
-pnpm lint             # Check formatting and run ESLint
-pnpm format-and-lint  # Format and lint
-pnpm format-and-lint:fix  # Format and auto-fix linting issues
+bun check            # Run Svelte type checking
+bun check:watch      # Run type checking in watch mode
+bun format           # Format code with Prettier
+bun lint             # Check formatting and run ESLint
+bun format-and-lint  # Format and lint
+bun format-and-lint:fix  # Format and auto-fix linting issues
 ```
 
 ### Testing
 ```bash
-pnpm test:e2e         # Run Playwright e2e tests
-pnpm test:e2e:ui      # Run Playwright tests with UI
+bun test:e2e         # Run Playwright e2e tests
+bun test:e2e:ui      # Run Playwright tests with UI
 ```
 
-Note: Playwright tests run on port 5173 with `pnpm preview` (configured in `playwright.config.ts`)
+Note: Playwright tests run on port 5173 with `bun preview` (configured in `playwright.config.ts`)
 
 ## Schema Development Workflow
 
@@ -127,6 +127,6 @@ src/
 
 - **Svelte 5**: This project uses Svelte 5 with runes (`$props`, `$derived`, etc.)
 - **TailwindCSS 4**: Uses Tailwind CSS v4 with PostCSS plugin
-- **Package manager**: Uses `pnpm` (not npm/yarn)
+- **Package manager**: Uses `bun` (not npm/yarn/pnpm)
 - **Jazz Inspector**: Available in dev mode via `<jazz-inspector>` custom element
 - **Local sync server**: Can run `npx jazz-run sync` and change sync config to `{ peer: "ws://localhost:4200" }` for local development

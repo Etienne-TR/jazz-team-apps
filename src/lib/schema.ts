@@ -3,13 +3,35 @@
  * https://jazz.tools/docs/svelte/schemas/covalues
  */
 
-import { Group, co, z } from "jazz-tools";
+import { Group, Account, co, z } from "jazz-tools";
 
 export { co };
 
 /** Activity CoMap */
 export const Activity = co.map({
   name: z.string(),
+});
+
+/** JoinRequest - Demande d'accès à une organisation */
+export const JoinRequest = co.map({
+  account: Account,
+  organizationId: z.string(), // ID de l'organisation pour laquelle la demande est faite
+  status: z.enum(["pending", "approved", "rejected"]),
+  createdAt: z.date(),
+  archivedAt: z.date().optional(), // Quand la demande a été archivée (masquée de la vue)
+});
+
+/** Invitation CoMap - Système de demande d'accès
+ * L'invitation contient une liste de demandes que tout le monde peut écrire
+ * L'invitation elle-même est lisible par tous (everyone: reader) pour permettre
+ * à user2 de la charger et d'ajouter une demande
+ */
+export const Invitation = co.map({
+  organizationId: z.string(),
+  requests: co.list(JoinRequest),
+  createdAt: z.date(),
+  revokedAt: z.date().optional(), // Quand l'invitation a été révoquée (bloque le lien)
+  archivedAt: z.date().optional(), // Quand l'invitation a été archivée (masquée de la vue)
 });
 
 /** Organization CoMap */
@@ -35,6 +57,8 @@ export const JazzProfile = co.profile({
 export const AccountRoot = co.map({
   dateOfBirth: z.date(),
   organizations: co.list(Organization),
+  myInvitations: co.list(Invitation), // Les invitations que j'ai créées
+  myRequests: co.list(JoinRequest), // Mes demandes d'accès
 });
 
 export function getUserAge(root: co.loaded<typeof AccountRoot> | undefined) {
@@ -70,7 +94,19 @@ export const JazzAccount = co
       account.$jazz.set("root", AccountRoot.create({
         dateOfBirth: new Date("1/1/1990"),
         organizations: co.list(Organization).create([]),
+        myInvitations: co.list(Invitation).create([]),
+        myRequests: co.list(JoinRequest).create([]),
       }));
+    }
+
+    // Migration pour les comptes existants sans myInvitations
+    if (account.root && !account.root.$jazz.has("myInvitations")) {
+      account.root.$jazz.set("myInvitations", co.list(Invitation).create([]));
+    }
+
+    // Migration pour les comptes existants sans myRequests
+    if (account.root && !account.root.$jazz.has("myRequests")) {
+      account.root.$jazz.set("myRequests", co.list(JoinRequest).create([]));
     }
 
     if (!account.$jazz.has("profile")) {
