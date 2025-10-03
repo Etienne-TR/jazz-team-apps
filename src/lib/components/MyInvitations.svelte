@@ -72,7 +72,6 @@
             rejectedCount,
           });
         } catch (e) {
-          console.log("⚠️ [MyInvitations] Cannot load organization:", e);
           invitations.push({
             invitation,
             organizationName: "Organisation inconnue",
@@ -107,7 +106,7 @@
         copiedInviteId = null;
       }, 2000);
     } catch (error) {
-      console.error("Failed to copy invite link:", error);
+      // Error silently handled
     }
   }
 
@@ -126,10 +125,9 @@
 
       if (invitation) {
         invitation.$jazz.set("revokedAt", new Date());
-        console.log("Invitation revoked");
       }
     } catch (error) {
-      console.error("Failed to revoke invitation:", error);
+      // Error silently handled
     }
   }
 
@@ -143,10 +141,9 @@
 
       if (invitation) {
         invitation.$jazz.set("archivedAt", new Date());
-        console.log("Invitation archived");
       }
     } catch (error) {
-      console.error("Failed to archive invitation:", error);
+      // Error silently handled
     }
   }
 
@@ -160,10 +157,9 @@
 
       if (invitation) {
         invitation.$jazz.delete("archivedAt");
-        console.log("Invitation unarchived");
       }
     } catch (error) {
-      console.error("Failed to unarchive invitation:", error);
+      // Error silently handled
     }
   }
 </script>

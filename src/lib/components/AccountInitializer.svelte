@@ -27,7 +27,6 @@
   $effect(() => {
     if (me?.root && !me.root.$jazz.has("myRequests")) {
       me.root.$jazz.set("myRequests", co.list(JoinRequest).create([]));
-      console.log("✅ [AccountInitializer] myRequests initialized");
     }
   });
 </script>

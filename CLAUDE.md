@@ -22,9 +22,41 @@ This is a Jazz-powered Svelte application using Tailwind CSS and passkey authent
 Jazz uses CoValues (Collaborative Values) for data structures:
 - `co.profile()` for public profile data (shared with everyone)
 - `co.map()` for key-value structures
+- `co.list()` for ordered collections
 - `co.account()` for account schemas with profile and root
 - All schemas use Zod (`z`) for type validation
 - Access `$jazz.set()` and `$jazz.has()` methods on CoValue instances to modify data
+
+#### Loading CoValues with Resolve Options
+
+When loading CoValues with references (using `.load()`, `AccountCoState`, or `useCoState`), use the `resolve` option to specify which nested data to load:
+
+**Loading Lists:**
+- ❌ **INVALID**: `myList: []` - Empty array is not a valid option and will cause errors
+- ✅ **Shallow load**: `myList: true` - Loads the list itself but NOT its items
+  - You can access `myList.length`
+  - Items like `myList[0]` may be `undefined` or `null` (not loaded)
+- ✅ **Deep load**: `myList: [{}]` or `myList: { $each: true }` - Loads the list AND all its items
+  - All items are guaranteed to be loaded
+  - Use this when you need to iterate over items or access their properties
+- ✅ **Deep load with nested references**: `myList: [{ nestedField: true }]` or `myList: { $each: { nestedField: true } }`
+
+**Examples:**
+```ts
+// Shallow load - list only
+const invitation = await Invitation.load(id, {
+  requests: true  // requests.length works, but requests[0] might not be loaded
+});
+
+// Deep load - list and all items
+const invitation = await Invitation.load(id, {
+  requests: [{}]  // or: requests: { $each: true }
+});
+
+// Deep load with nested references
+const project = await Project.load(id, {
+  tasks: [{ assignee: true }]  // or: tasks: { $each: { assignee: true } }
+});
 
 ### Svelte 5 Patterns
 

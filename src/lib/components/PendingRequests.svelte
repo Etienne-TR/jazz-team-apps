@@ -32,8 +32,6 @@
         organizationId: string;
       }> = [];
 
-      console.log("🔄 [PendingRequests] Loading requests asynchronously...");
-
       for (const invitation of me.root.myInvitations) {
         if (!invitation) continue;
 
@@ -41,43 +39,24 @@
           const requestsList = invitation.requests;
           if (!requestsList) continue;
 
-          console.log("📋 [PendingRequests] Processing invitation:", {
-            invitationId: invitation.$jazz.id,
-            requestsLength: requestsList.length,
-          });
-
           for (let i = 0; i < requestsList.length; i++) {
             try {
               // Charger chaque request individuellement
               const requestRef = requestsList[i];
-              console.log(`🔍 [PendingRequests] Request ${i} raw:`, requestRef);
 
               const requestId = requestRef?.$jazz?.id;
               if (!requestId) {
-                console.log(`⚠️ [PendingRequests] Request ${i} has no ID`, {
-                  hasRef: !!requestRef,
-                  type: typeof requestRef,
-                  keys: requestRef ? Object.keys(requestRef) : null,
-                });
                 continue;
               }
 
               const request = await JoinRequest.load(requestId, {});
 
               if (!request) {
-                console.log(`⚠️ [PendingRequests] Cannot load request ${requestId}`);
                 continue;
               }
 
-              console.log("📄 [PendingRequests] Loaded request:", {
-                requestId,
-                status: request.status,
-                accountId: request.account?.$jazz.id,
-              });
-
               // Vérifier que le compte existe
               if (!request.account) {
-                console.log(`⚠️ [PendingRequests] Request has no account`);
                 continue;
               }
 
@@ -88,15 +67,14 @@
                 organizationId: invitation.organizationId,
               });
             } catch (e) {
-              console.log(`⚠️ [PendingRequests] Cannot access request ${i}:`, e);
+              // Silently skip inaccessible requests
             }
           }
         } catch (e) {
-          console.log("⚠️ [PendingRequests] Cannot access invitation:", e);
+          // Silently skip inaccessible invitations
         }
       }
 
-      console.log("✅ [PendingRequests] Total pending requests loaded:", requests.length);
       loadedRequests = requests;
     };
 
@@ -119,7 +97,6 @@
       const organization = await Organization.load(organizationId, {});
 
       if (!organization) {
-        console.error("Organization not found");
         alert("Organisation introuvable.");
         return;
       }
@@ -129,13 +106,11 @@
       const targetGroup = organizationRaw.core?.getGroup?.();
 
       if (!targetGroup) {
-        console.error("Cannot access organization group");
         alert("Impossible d'accéder au groupe de l'organisation.");
         return;
       }
 
       if (!request.account) {
-        console.error("No account in request");
         alert("Aucun compte dans la demande.");
         return;
       }
@@ -145,12 +120,9 @@
       const rawAccount = (accountJazz as any).raw;
 
       if (!rawAccount) {
-        console.error("Cannot access raw account");
         alert("Impossible d'accéder à l'objet brut du compte.");
         return;
       }
-
-      console.log("👤 [PendingRequests] Using rawAccount:", rawAccount);
 
       // Ajouter le membre au groupe avec l'objet brut
       targetGroup.addMember(rawAccount, "writer");
@@ -158,13 +130,11 @@
       // Marquer la demande comme approuvée
       request.$jazz.set("status", "approved");
 
-      console.log("✅ Request approved successfully");
       alert(
         `Demande approuvée ! L'utilisateur a été ajouté au groupe de l'organisation.\n\n` +
         `L'utilisateur recevra automatiquement l'organisation dans sa liste.`
       );
     } catch (error) {
-      console.error("Failed to approve request:", error);
       alert("Erreur lors de l'approbation de la demande.");
     }
   }
@@ -172,27 +142,24 @@
   function rejectRequest(request: ReturnType<typeof JoinRequest.create>) {
     try {
       request.$jazz.set("status", "rejected");
-      console.log("Request rejected");
     } catch (error) {
-      console.error("Failed to reject request:", error);
+      // Error silently handled
     }
   }
 
   function archiveRequest(request: ReturnType<typeof JoinRequest.create>) {
     try {
       request.$jazz.set("archivedAt", new Date());
-      console.log("Request archived");
     } catch (error) {
-      console.error("Failed to archive request:", error);
+      // Error silently handled
     }
   }
 
   function unarchiveRequest(request: ReturnType<typeof JoinRequest.create>) {
     try {
       request.$jazz.delete("archivedAt");
-      console.log("Request unarchived");
     } catch (error) {
-      console.error("Failed to unarchive request:", error);
+      // Error silently handled
     }
   }
 </script>

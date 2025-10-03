@@ -48,7 +48,6 @@
             organizationName,
           });
         } catch (e) {
-          console.log("⚠️ [MyRequests] Cannot load organization:", e);
           requests.push({
             request,
             organizationName: "Organisation inconnue",
@@ -72,18 +71,16 @@
   function archiveRequest(request: any) {
     try {
       request.$jazz.set("archivedAt", new Date());
-      console.log("Request archived");
     } catch (error) {
-      console.error("Failed to archive request:", error);
+      // Error silently handled
     }
   }
 
   function unarchiveRequest(request: any) {
     try {
       request.$jazz.delete("archivedAt");
-      console.log("Request unarchived");
     } catch (error) {
-      console.error("Failed to unarchive request:", error);
+      // Error silently handled
     }
   }
 </script>

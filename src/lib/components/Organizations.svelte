@@ -45,20 +45,12 @@
       // Sauvegarder l'invitation dans ma liste pour pouvoir voir les demandes
       if (me?.root?.myInvitations) {
         me.root.myInvitations.$jazz.push(invitation);
-        console.log("💾 [Organizations] Invitation saved to myInvitations:", {
-          invitationId: invitation.$jazz.id,
-          organizationId: organization.$jazz.id,
-          myInvitationsLength: me.root.myInvitations.length,
-        });
-      } else {
-        console.error("❌ [Organizations] Cannot save invitation - myInvitations not available");
       }
 
       // L'ID est accessible via $jazz.id
       const invitationId = invitation.$jazz.id;
 
       if (!invitationId) {
-        console.error("Invitation ID not available");
         return;
       }
 
@@ -72,7 +64,7 @@
         copiedOrgId = null;
       }, 2000);
     } catch (error) {
-      console.error("Failed to create invite link:", error);
+      // Error silently handled
     }
   }
 
@@ -97,7 +89,9 @@
   function handleLeaveOrganization(organization: NonNullable<typeof organizations>[number]) {
     if (!organization || !me?.root?.organizations) return;
 
-    const confirmed = confirm(`Voulez-vous vraiment quitter l'organisation "${organization.name}" ?`);
+    const confirmed = confirm(
+      `Voulez-vous vraiment quitter l'organisation "${organization.name}" ?`,
+    );
     if (!confirmed) return;
 
     // Trouver l'index de l'organisation et la retirer de MA liste

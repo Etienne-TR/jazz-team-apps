@@ -30,7 +30,6 @@
       const invitationId = parts[parts.length - 1];
 
       if (!invitationId) {
-        console.error("No invitation ID found in URL");
         return;
       }
 
@@ -39,19 +38,12 @@
         return;
       }
 
-      // Charger l'Invitation CoMap (writeOnly - on ne peut que créer des demandes)
-      const invitation = await Invitation.load(invitationId, {});
-
-      console.log("📨 [InviteHandler] Invitation loaded:", {
-        invitationId,
-        invitation,
-        organizationId: invitation?.organizationId,
-        requestsLength: invitation?.requests?.length,
-        revokedAt: invitation?.revokedAt,
+      // Charger l'Invitation CoMap avec la liste des demandes
+      const invitation = await Invitation.load(invitationId, {
+        requests: [{}]
       });
 
       if (!invitation) {
-        console.error("Invitation not found or no access");
         alert("Cette invitation n'est pas valide.");
         replaceState("", {});
         await goto("/");
@@ -60,7 +52,6 @@
 
       // Vérifier si l'invitation a été révoquée
       if (invitation.revokedAt) {
-        console.log("❌ [InviteHandler] Invitation has been revoked");
         alert("Cette invitation a été révoquée et n'est plus valide.");
         replaceState("", {});
         await goto("/");
@@ -85,15 +76,8 @@
         joinRequestGroup // Utiliser un groupe lisible
       );
 
-      console.log("📝 [InviteHandler] JoinRequest created:", {
-        joinRequestId: joinRequest.$jazz.id,
-        accountId: me.$jazz.id,
-        status: joinRequest.status,
-      });
-
       // Ajouter la demande à la liste de l'invitation
       if (!invitation.requests) {
-        console.error("❌ [InviteHandler] Invitation requests list not available");
         alert("Erreur: la liste des demandes n'est pas disponible.");
         return;
       }
@@ -102,15 +86,7 @@
       // Ajouter la demande à ma liste personnelle pour pouvoir la surveiller
       if (me.root.myRequests) {
         me.root.myRequests.$jazz.push(joinRequest);
-        console.log("✅ [InviteHandler] Request added to myRequests", {
-          requestId: joinRequest.$jazz.id,
-          myRequestsLength: me.root.myRequests.length,
-        });
-      } else {
-        console.error("❌ [InviteHandler] myRequests not available - request not added to user's list");
       }
-
-      console.log("✅ [InviteHandler] Request pushed to invitation.requests");
 
       // Marquer comme envoyé et nettoyer l'URL
       requestSent = true;
@@ -122,7 +98,6 @@
       }, 2000);
 
     } catch (error) {
-      console.error("Failed to send join request:", error);
       alert("Erreur lors de l'envoi de la demande d'accès.");
     }
   }
