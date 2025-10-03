@@ -6,7 +6,9 @@
   const account = new AccountCoState(JazzAccount, {
     resolve: {
       root: {
-        myInvitations: true, // Charger seulement les invitations, pas les requests
+        myInvitations: [{
+          requests: { $each: { $onError: null } }
+        }]
       },
     },
   });

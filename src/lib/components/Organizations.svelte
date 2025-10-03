@@ -25,21 +25,18 @@
     if (!organization) return;
 
     try {
-      // Créer une Invitation simple (lisible par tous)
+      // Créer UN groupe avec writer pour l'invitation
       const invitationGroup = Group.create();
-      invitationGroup.addMember("everyone", "reader");
-
-      // Groupe pour la liste requests (writer pour permettre à tous d'ajouter des requests)
-      const requestsListGroup = Group.create();
-      requestsListGroup.addMember("everyone", "writer");
+      invitationGroup.addMember("everyone", "writer");
 
       const invitation = Invitation.create(
         {
           organizationId: organization.$jazz.id,
-          requests: co.list(JoinRequest).create([], requestsListGroup), // Groupe writer
+          // NE PAS créer la liste ici, laisser Jazz la créer automatiquement
+          // requests: co.list(JoinRequest).create([]),
           createdAt: new Date(),
         },
-        invitationGroup,
+        { owner: invitationGroup },
       );
 
       // Sauvegarder l'invitation dans ma liste pour pouvoir voir les demandes

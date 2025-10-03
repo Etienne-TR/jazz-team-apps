@@ -1,7 +1,7 @@
 <script lang="ts">
   import { AccountCoState } from "jazz-tools/svelte";
   import { Group } from "jazz-tools";
-  import { JazzAccount, Invitation, JoinRequest } from "$lib/schema";
+  import { JazzAccount, Invitation, JoinRequest, co } from "$lib/schema";
   import { goto, replaceState } from "$app/navigation";
 
   const account = new AccountCoState(JazzAccount, {
@@ -38,10 +38,8 @@
         return;
       }
 
-      // Charger l'Invitation CoMap avec la liste des demandes
-      const invitation = await Invitation.load(invitationId, {
-        requests: [{}]
-      });
+      // Charger l'Invitation CoMap SANS la liste requests (elle n'existe peut-être pas encore)
+      const invitation = await Invitation.load(invitationId, {});
 
       if (!invitation) {
         alert("Cette invitation n'est pas valide.");
@@ -76,21 +74,50 @@
         joinRequestGroup // Utiliser un groupe lisible
       );
 
-      // Ajouter la demande à la liste de l'invitation
+      // Initialiser la liste requests si elle n'existe pas
+      if (!invitation.$jazz.has("requests")) {
+        console.log("Création de la liste requests pour cette invitation");
+
+        // Obtenir le groupe de l'invitation pour que la liste hérite des mêmes permissions
+        const invitationGroup = invitation.$jazz.owner;
+        console.log("Groupe de l'invitation:", invitationGroup);
+
+        invitation.$jazz.set("requests", co.list(JoinRequest).create([], { owner: invitationGroup }));
+      }
+
+      // Attendre que la liste soit créée et synchronisée
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Vérifier que la liste est maintenant accessible
       if (!invitation.requests) {
-        alert("Erreur: la liste des demandes n'est pas disponible.");
+        console.error("Erreur: impossible d'accéder à la liste même après création");
+        console.error("invitation.requests:", invitation.requests);
+        console.error("Has requests?", invitation.$jazz.has("requests"));
+        alert("Erreur lors de l'accès à la liste des demandes.");
         return;
       }
-      invitation.requests.$jazz.push(joinRequest);
+
+      try {
+        console.log("Tentative d'ajout de la demande à la liste...");
+        invitation.requests.$jazz.push(joinRequest);
+        console.log("✓ Demande ajoutée à la liste de l'invitation");
+      } catch (error) {
+        console.error("Erreur lors de l'ajout à la liste:", error);
+        alert("Erreur lors de l'ajout de votre demande. Vérifiez la console.");
+        return;
+      }
 
       // Ajouter la demande à ma liste personnelle pour pouvoir la surveiller
       if (me.root.myRequests) {
         me.root.myRequests.$jazz.push(joinRequest);
+        console.log("✓ Demande ajoutée à myRequests");
       }
 
       // Marquer comme envoyé et nettoyer l'URL
       requestSent = true;
       replaceState("", {});
+
+      console.log("✓ Processus d'invitation terminé avec succès !");
 
       // Attendre un peu puis rediriger
       setTimeout(async () => {

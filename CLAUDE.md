@@ -41,6 +41,24 @@ When loading CoValues with references (using `.load()`, `AccountCoState`, or `us
   - Use this when you need to iterate over items or access their properties
 - ✅ **Deep load with nested references**: `myList: [{ nestedField: true }]` or `myList: { $each: { nestedField: true } }`
 
+**Handling Inaccessible Items with `$onError`:**
+
+By default, if ANY item in a list is inaccessible, the entire load fails and returns `null`. Use `$onError: null` on `$each` to handle inaccessible items gracefully:
+
+```ts
+// Without $onError: if one item is inaccessible, entire load fails
+const project = await Project.load(id, {
+  tasks: { $each: true }  // Returns null if ANY task is inaccessible
+});
+
+// With $onError on $each: inaccessible items become null, rest loads normally
+const project = await Project.load(id, {
+  tasks: { $each: { $onError: null } }  // Inaccessible items become null
+});
+```
+
+**Important:** Apply `$onError: null` to `$each` (items), not to the list itself. If you apply it to the list, the entire list becomes `null` when inaccessible, preventing operations like `.push()`.
+
 **Examples:**
 ```ts
 // Shallow load - list only
@@ -48,9 +66,14 @@ const invitation = await Invitation.load(id, {
   requests: true  // requests.length works, but requests[0] might not be loaded
 });
 
-// Deep load - list and all items
+// Deep load - list and all items (strict - fails if any item inaccessible)
 const invitation = await Invitation.load(id, {
   requests: [{}]  // or: requests: { $each: true }
+});
+
+// Deep load with graceful error handling (recommended for shared lists)
+const invitation = await Invitation.load(id, {
+  requests: { $each: { $onError: null } }  // $onError on items only, not the list
 });
 
 // Deep load with nested references

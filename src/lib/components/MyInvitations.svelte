@@ -5,7 +5,9 @@
   const account = new AccountCoState(JazzAccount, {
     resolve: {
       root: {
-        myInvitations: true,
+        myInvitations: [{
+          requests: { $each: { $onError: null } }
+        }]
       },
     },
   });
