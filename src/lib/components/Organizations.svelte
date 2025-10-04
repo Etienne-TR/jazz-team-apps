@@ -16,28 +16,39 @@
   });
   const me = $derived(account.current);
 
-  const organizations = $derived(me?.root?.organizations);
+  const organizations = $derived(
+    me?.root?.organizations?.toSorted((a, b) => (a?.name || "").localeCompare(b?.name || "")),
+  );
 
   let newOrgName = $state("");
   let copiedOrgId = $state<string | null>(null);
 
   async function handleCopyInviteLink(organization: NonNullable<typeof organizations>[number]) {
-    if (!organization) return;
+    if (!organization || !me) return;
 
     try {
-      // Créer UN groupe avec writer pour l'invitation
+      console.log("Création de l'invitation pour l'organisation:", organization.$jazz.id);
+
+      // Créer UN groupe avec reader pour l'invitation (tout le monde peut lire)
       const invitationGroup = Group.create();
-      invitationGroup.addMember("everyone", "writer");
+      invitationGroup.addMember("everyone", "reader"); // Lecture seule pour l'invitation
+
+      // Créer un groupe pour la liste requests avec writeOnly
+      const requestsGroup = Group.create();
+      requestsGroup.addMember("everyone", "writeOnly"); // Tout le monde peut ajouter (sans lire)
+      requestsGroup.addMember(me, "admin"); // Je peux lire et gérer toutes les demandes
 
       const invitation = Invitation.create(
         {
           organizationId: organization.$jazz.id,
-          // NE PAS créer la liste ici, laisser Jazz la créer automatiquement
-          // requests: co.list(JoinRequest).create([]),
+          requests: co.list(JoinRequest).create([], { owner: requestsGroup }),
           createdAt: new Date(),
         },
         { owner: invitationGroup },
       );
+
+      console.log("Invitation créée:", invitation);
+      console.log("Invitation organizationId:", invitation.organizationId);
 
       // Sauvegarder l'invitation dans ma liste pour pouvoir voir les demandes
       if (me?.root?.myInvitations) {
@@ -48,8 +59,11 @@
       const invitationId = invitation.$jazz.id;
 
       if (!invitationId) {
+        console.error("Pas d'invitationId après création");
         return;
       }
+
+      console.log("InvitationId:", invitationId);
 
       // Créer le lien vers l'Invitation (pas vers l'Organisation)
       const baseURL = window.location.href.replace(/#.*$/, "");
@@ -60,7 +74,7 @@
       setTimeout(() => {
         copiedOrgId = null;
       }, 2000);
-    } catch (error) {
+    } catch {
       // Error silently handled
     }
   }

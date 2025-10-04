@@ -38,7 +38,7 @@
         return;
       }
 
-      // Charger l'Invitation CoMap SANS la liste requests (elle n'existe peut-être pas encore)
+      // Charger l'Invitation CoMap (sans charger la liste writeOnly)
       const invitation = await Invitation.load(invitationId, {});
 
       if (!invitation) {
@@ -56,6 +56,11 @@
         return;
       }
 
+      console.log("Invitation chargée:", invitation);
+      console.log("Organization ID:", invitation.organizationId);
+      console.log("Has requests field?", invitation.$jazz.has("requests"));
+      console.log("Requests value:", invitation.requests);
+
       // Marquer comme traité
       processedInvites.add(invitationId);
 
@@ -67,36 +72,14 @@
       const joinRequest = JoinRequest.create(
         {
           account: me,
-          organizationId: invitation.organizationId, // Stocker l'ID pour que user2 puisse voir le nom
+          invitationId: invitation.$jazz.id,
           status: "pending",
           createdAt: new Date(),
         },
-        joinRequestGroup // Utiliser un groupe lisible
+        joinRequestGroup, // Utiliser un groupe lisible
       );
 
-      // Initialiser la liste requests si elle n'existe pas
-      if (!invitation.$jazz.has("requests")) {
-        console.log("Création de la liste requests pour cette invitation");
-
-        // Obtenir le groupe de l'invitation pour que la liste hérite des mêmes permissions
-        const invitationGroup = invitation.$jazz.owner;
-        console.log("Groupe de l'invitation:", invitationGroup);
-
-        invitation.$jazz.set("requests", co.list(JoinRequest).create([], { owner: invitationGroup }));
-      }
-
-      // Attendre que la liste soit créée et synchronisée
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Vérifier que la liste est maintenant accessible
-      if (!invitation.requests) {
-        console.error("Erreur: impossible d'accéder à la liste même après création");
-        console.error("invitation.requests:", invitation.requests);
-        console.error("Has requests?", invitation.$jazz.has("requests"));
-        alert("Erreur lors de l'accès à la liste des demandes.");
-        return;
-      }
-
+      // Ajouter la demande à la liste writeOnly (fonctionne même si elle apparaît null)
       try {
         console.log("Tentative d'ajout de la demande à la liste...");
         invitation.requests.$jazz.push(joinRequest);
@@ -123,8 +106,7 @@
       setTimeout(async () => {
         await goto("/");
       }, 2000);
-
-    } catch (error) {
+    } catch {
       alert("Erreur lors de l'envoi de la demande d'accès.");
     }
   }
@@ -156,8 +138,8 @@
         <div class="text-green-600 text-5xl mb-4">✓</div>
         <h2 class="text-2xl font-semibold mb-2">Demande envoyée !</h2>
         <p class="text-stone-600">
-          Votre demande d'accès a été envoyée au créateur de l'organisation.
-          Vous serez notifié une fois qu'elle sera approuvée.
+          Votre demande d'accès a été envoyée au créateur de l'organisation. Vous serez notifié
+          une fois qu'elle sera approuvée.
         </p>
       </div>
     </div>

@@ -1,13 +1,15 @@
 <script lang="ts">
-  import { JazzAccount, Organization } from "$lib/schema";
+  import { JazzAccount, Organization, Invitation } from "$lib/schema";
   import { AccountCoState } from "jazz-tools/svelte";
 
   const account = new AccountCoState(JazzAccount, {
     resolve: {
       root: {
-        myInvitations: [{
-          requests: { $each: { $onError: null } }
-        }]
+        myInvitations: [
+          {
+            requests: { $each: { $onError: null } },
+          },
+        ] as any,
       },
     },
   });
@@ -17,26 +19,22 @@
   let showArchived = $state(false);
 
   // État pour stocker les invitations avec leurs organisations
-  let loadedInvitations = $state<Array<{
+  type LoadedInvitation = {
     invitation: any;
     organizationName: string;
     pendingCount: number;
     approvedCount: number;
     rejectedCount: number;
-  }>>([]);
+  };
+
+  let loadedInvitations = $state<LoadedInvitation[]>([]);
 
   // Charger les organisations de manière asynchrone
   $effect(() => {
     const loadOrganizations = async () => {
       if (!me?.root?.myInvitations) return;
 
-      const invitations: Array<{
-        invitation: any;
-        organizationName: string;
-        pendingCount: number;
-        approvedCount: number;
-        rejectedCount: number;
-      }> = [];
+      const invitations: LoadedInvitation[] = [];
 
       for (const invitation of me.root.myInvitations) {
         if (!invitation) continue;
@@ -73,7 +71,7 @@
             approvedCount,
             rejectedCount,
           });
-        } catch (e) {
+        } catch {
           invitations.push({
             invitation,
             organizationName: "Organisation inconnue",
@@ -94,7 +92,7 @@
   const visibleInvitations = $derived(
     showArchived
       ? loadedInvitations
-      : loadedInvitations.filter(inv => !inv.invitation.archivedAt)
+      : loadedInvitations.filter((inv) => !inv.invitation.archivedAt),
   );
 
   async function copyInviteLink(invitationId: string) {
@@ -107,7 +105,7 @@
       setTimeout(() => {
         copiedInviteId = null;
       }, 2000);
-    } catch (error) {
+    } catch {
       // Error silently handled
     }
   }
@@ -117,18 +115,16 @@
       if (!me?.root?.myInvitations) return;
 
       const confirmed = confirm(
-        "Voulez-vous vraiment révoquer cette invitation ? Le lien ne fonctionnera plus et personne ne pourra l'utiliser."
+        "Voulez-vous vraiment révoquer cette invitation ? Le lien ne fonctionnera plus et personne ne pourra l'utiliser.",
       );
       if (!confirmed) return;
 
-      const invitation = me.root.myInvitations.find(
-        (inv) => inv?.$jazz.id === invitationId
-      );
+      const invitation = me.root.myInvitations.find((inv) => inv?.$jazz.id === invitationId);
 
       if (invitation) {
         invitation.$jazz.set("revokedAt", new Date());
       }
-    } catch (error) {
+    } catch {
       // Error silently handled
     }
   }
@@ -137,14 +133,12 @@
     try {
       if (!me?.root?.myInvitations) return;
 
-      const invitation = me.root.myInvitations.find(
-        (inv) => inv?.$jazz.id === invitationId
-      );
+      const invitation = me.root.myInvitations.find((inv) => inv?.$jazz.id === invitationId);
 
       if (invitation) {
         invitation.$jazz.set("archivedAt", new Date());
       }
-    } catch (error) {
+    } catch {
       // Error silently handled
     }
   }
@@ -153,14 +147,12 @@
     try {
       if (!me?.root?.myInvitations) return;
 
-      const invitation = me.root.myInvitations.find(
-        (inv) => inv?.$jazz.id === invitationId
-      );
+      const invitation = me.root.myInvitations.find((inv) => inv?.$jazz.id === invitationId);
 
       if (invitation) {
         invitation.$jazz.delete("archivedAt");
       }
-    } catch (error) {
+    } catch {
       // Error silently handled
     }
   }
@@ -173,11 +165,7 @@
         Mes liens d'invitation ({visibleInvitations.length}{#if !showArchived && loadedInvitations.length > visibleInvitations.length}/{loadedInvitations.length}{/if})
       </h2>
       <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input
-          type="checkbox"
-          bind:checked={showArchived}
-          class="rounded"
-        />
+        <input type="checkbox" bind:checked={showArchived} class="rounded" />
         <span>Afficher les archives</span>
       </label>
     </div>
@@ -186,7 +174,11 @@
         {@const totalRequests = pendingCount + approvedCount + rejectedCount}
         {@const isRevoked = !!invitation.revokedAt}
         {@const isArchived = !!invitation.archivedAt}
-        {@const borderColor = isRevoked ? "border-red-300" : isArchived ? "border-stone-300" : "border-blue-200"}
+        {@const borderColor = isRevoked
+          ? "border-red-300"
+          : isArchived
+            ? "border-stone-300"
+            : "border-blue-200"}
         {@const bgColor = isRevoked ? "bg-red-50" : isArchived ? "bg-stone-50" : "bg-blue-50"}
         <li class="p-4 border {borderColor} {bgColor} rounded">
           <div class="flex items-start justify-between gap-4">
@@ -196,27 +188,29 @@
                   Invitation pour "{organizationName}"
                 </div>
                 {#if isRevoked}
-                  <span class="text-xs px-2 py-1 rounded bg-red-600 text-white">
-                    Révoquée
-                  </span>
+                  <span class="text-xs px-2 py-1 rounded bg-red-600 text-white"> Révoquée </span>
                 {/if}
                 {#if isArchived}
-                  <span class="text-xs px-2 py-1 rounded bg-stone-600 text-white">
-                    Archivée
-                  </span>
+                  <span class="text-xs px-2 py-1 rounded bg-stone-600 text-white"> Archivée </span>
                 {/if}
               </div>
               <div class="text-sm text-stone-600 mt-1">
-                Créée le {new Date(invitation.createdAt).toLocaleDateString()} à {new Date(invitation.createdAt).toLocaleTimeString()}
+                Créée le {new Date(invitation.createdAt).toLocaleDateString()} à {new Date(
+                  invitation.createdAt,
+                ).toLocaleTimeString()}
               </div>
               {#if isRevoked}
                 <div class="text-sm text-red-600 mt-1">
-                  Révoquée le {new Date(invitation.revokedAt).toLocaleDateString()} à {new Date(invitation.revokedAt).toLocaleTimeString()}
+                  Révoquée le {new Date(invitation.revokedAt).toLocaleDateString()} à {new Date(
+                    invitation.revokedAt,
+                  ).toLocaleTimeString()}
                 </div>
               {/if}
               {#if isArchived}
                 <div class="text-sm text-stone-600 mt-1">
-                  Archivée le {new Date(invitation.archivedAt).toLocaleDateString()} à {new Date(invitation.archivedAt).toLocaleTimeString()}
+                  Archivée le {new Date(invitation.archivedAt).toLocaleDateString()} à {new Date(
+                    invitation.archivedAt,
+                  ).toLocaleTimeString()}
                 </div>
               {/if}
               {#if totalRequests > 0}
@@ -238,9 +232,7 @@
                   {/if}
                 </div>
               {:else}
-                <div class="text-sm text-stone-500 mt-2">
-                  Aucune demande reçue
-                </div>
+                <div class="text-sm text-stone-500 mt-2">Aucune demande reçue</div>
               {/if}
             </div>
             <div class="flex gap-2">
@@ -284,7 +276,8 @@
     </ul>
     {#if visibleInvitations.length === 0 && !showArchived}
       <p class="text-stone-500 text-sm mt-4">
-        Aucune invitation active. {#if loadedInvitations.length > 0}Cochez "Afficher les archives" pour voir les invitations archivées.{/if}
+        Aucune invitation active. {#if loadedInvitations.length > 0}Cochez "Afficher les archives"
+          pour voir les invitations archivées.{/if}
       </p>
     {/if}
   </div>

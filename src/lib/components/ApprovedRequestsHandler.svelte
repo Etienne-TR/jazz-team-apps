@@ -33,7 +33,6 @@
 
         // Si la demande est approuvée et a un ID d'organisation
         if (request.status === "approved" && request.organizationId) {
-
           // Marquer comme traitée
           processedRequests.add(request.$jazz.id);
 
@@ -44,18 +43,18 @@
             if (organization) {
               // Vérifier si l'organisation n'est pas déjà dans la liste
               const alreadyAdded = me.root.organizations?.some(
-                (org) => org?.$jazz.id === organization.$jazz.id
+                (org) => org?.$jazz.id === organization.$jazz.id,
               );
 
               if (!alreadyAdded) {
                 // Ajouter l'organisation à ma liste
                 me.root.organizations?.$jazz.push(organization);
                 alert(
-                  `Votre demande a été approuvée ! L'organisation a été ajoutée à votre liste.`
+                  `Votre demande a été approuvée ! L'organisation a été ajoutée à votre liste.`,
                 );
               }
             }
-          } catch (error) {
+          } catch {
             // Error silently handled
           }
         }

@@ -15,7 +15,7 @@ export const Activity = co.map({
 /** JoinRequest - Demande d'accès à une organisation */
 export const JoinRequest = co.map({
   account: Account,
-  organizationId: z.string(), // ID de l'organisation pour laquelle la demande est faite
+  invitationId: z.string(), // ID de l'invitation (pour charger les infos via Invitation.load())
   status: z.enum(["pending", "approved", "rejected"]),
   createdAt: z.date(),
   archivedAt: z.date().optional(), // Quand la demande a été archivée (masquée de la vue)
@@ -27,8 +27,8 @@ export const JoinRequest = co.map({
  * à user2 de la charger et d'ajouter une demande
  */
 export const Invitation = co.map({
-  organizationId: z.string(),
-  requests: co.list(JoinRequest),
+  organizationId: z.string(), // Charger Organization.load(organizationId) pour obtenir le nom
+  requests: co.list(JoinRequest), // Liste avec everyone:writeOnly + créateur:admin
   createdAt: z.date(),
   revokedAt: z.date().optional(), // Quand l'invitation a été révoquée (bloque le lien)
   archivedAt: z.date().optional(), // Quand l'invitation a été archivée (masquée de la vue)
@@ -91,12 +91,15 @@ export const JazzAccount = co
      *  You can use it to set up the account root and any other initial CoValues you need.
      */
     if (!account.$jazz.has("root")) {
-      account.$jazz.set("root", AccountRoot.create({
-        dateOfBirth: new Date("1/1/1990"),
-        organizations: co.list(Organization).create([]),
-        myInvitations: co.list(Invitation).create([]),
-        myRequests: co.list(JoinRequest).create([]),
-      }));
+      account.$jazz.set(
+        "root",
+        AccountRoot.create({
+          dateOfBirth: new Date("1/1/1990"),
+          organizations: co.list(Organization).create([]),
+          myInvitations: co.list(Invitation).create([]),
+          myRequests: co.list(JoinRequest).create([]),
+        }),
+      );
     }
 
     // Migration pour les comptes existants sans myInvitations

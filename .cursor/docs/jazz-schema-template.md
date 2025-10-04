@@ -26,19 +26,23 @@ export const AppRoot = co.map({
   // Real-time collaborative feeds
   items: ItemFeed,
   // Additional application-specific fields
-  settings: co.map({
-    theme: z.enum(["light", "dark"]).optional(),
-    language: z.string().optional(),
-  }).optional(),
+  settings: co
+    .map({
+      theme: z.enum(["light", "dark"]).optional(),
+      language: z.string().optional(),
+    })
+    .optional(),
 });
 
 // 4. Define Container schemas for organizing data
 export const DataContainer = co.map({
   itemFeed: ItemFeed,
-  metadata: co.map({
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  }).optional(),
+  metadata: co
+    .map({
+      createdAt: z.string(),
+      updatedAt: z.string(),
+    })
+    .optional(),
 });
 
 // 5. Define the main Account schema with migration logic
@@ -67,7 +71,7 @@ export const AppAccount = co
     if (!account.$jazz.has("profile")) {
       const group = Group.create();
       group.addMember("everyone", "reader"); // Profile visible to everyone
-      
+
       account.profile = UserProfile.create(
         {
           name: "Anonymous User",
@@ -82,18 +86,21 @@ export const AppAccount = co
 ## Schema Patterns and Best Practices
 
 ### 1. Naming Conventions
+
 - Use PascalCase for schema names: `UserProfile`, `AppRoot`
 - Use descriptive names that reflect the data structure
 - Suffix feeds with "Feed": `MessageFeed`, `CommentFeed`
 - Suffix containers with "Container": `ChatContainer`
 
 ### 2. Data Organization
+
 - **Feeds**: Use for real-time collaborative lists (messages, comments, items)
 - **Maps**: Use for structured data with known fields
 - **Profiles**: Use for user-specific information
 - **Root**: Use for main application state
 
 ### 3. Migration Patterns
+
 ```typescript
 .withMigration((account) => {
   // Always check if data exists before creating
@@ -102,11 +109,11 @@ export const AppAccount = co
       // Initialize with sensible defaults
     });
   }
-  
+
   if (!account.$jazz.has("profile")) {
     const group = Group.create();
     group.addMember("everyone", "reader");
-    
+
     account.profile = UserProfile.create({
       // Default profile data
     }, group);
@@ -115,6 +122,7 @@ export const AppAccount = co
 ```
 
 ### 4. Permission Patterns
+
 ```typescript
 // Public data (readable by everyone)
 const group = Group.create();
@@ -132,6 +140,7 @@ group.addMember("user456", "reader");
 ### 5. Common Schema Types
 
 #### For Chat Applications:
+
 ```typescript
 export const Message = co.map({
   content: z.string(),
@@ -148,6 +157,7 @@ export const ChatRoot = co.map({
 ```
 
 #### For Todo Applications:
+
 ```typescript
 export const TodoItem = co.map({
   title: z.string(),
@@ -165,6 +175,7 @@ export const TodoRoot = co.map({
 ```
 
 #### For Document Collaboration:
+
 ```typescript
 export const DocumentVersion = co.map({
   content: z.string(),
@@ -196,4 +207,4 @@ export const DocumentRoot = co.map({
 2. **Don't** forget migration logic - it's essential for schema evolution
 3. **Don't** mix different data types in the same feed
 4. **Don't** create circular references between schemas
-5. **Don't** forget to set appropriate permissions for sensitive data 
+5. **Don't** forget to set appropriate permissions for sensitive data
