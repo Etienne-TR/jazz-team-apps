@@ -2,7 +2,6 @@
   import { JazzAccount, Organization, Activity, Invitation, JoinRequest, co } from "$lib/schema";
   import { AccountCoState } from "jazz-tools/svelte";
   import { Group } from "jazz-tools";
-  import PendingRequests from "./PendingRequests.svelte";
   import MyRequests from "./MyRequests.svelte";
   import MyInvitations from "./MyInvitations.svelte";
 
@@ -36,7 +35,7 @@
       // Créer un groupe pour la liste requests avec writeOnly
       const requestsGroup = Group.create();
       requestsGroup.addMember("everyone", "writeOnly"); // Tout le monde peut ajouter (sans lire)
-      requestsGroup.addMember(me, "admin"); // Je peux lire et gérer toutes les demandes
+      requestsGroup.addMember(me, "admin"); // Admin explicite pour lire les requests
 
       const invitation = Invitation.create(
         {
@@ -117,11 +116,8 @@
 <div class="grid gap-6 mt-6">
   {#if me}
     <div class="grid gap-6">
-      <!-- Liens d'invitation générés (pour user1 qui crée des invitations) -->
+      <!-- Liens d'invitation générés (pour user1 qui crée des invitations) et demandes reçues -->
       <MyInvitations />
-
-      <!-- Demandes d'accès en attente (pour user1 qui reçoit des demandes) -->
-      <PendingRequests />
 
       <!-- Mes demandes envoyées (pour user2 qui a envoyé des demandes) -->
       <MyRequests />

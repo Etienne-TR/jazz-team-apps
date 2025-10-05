@@ -38,8 +38,11 @@
         return;
       }
 
-      // Charger l'Invitation CoMap (ne pas charger la liste writeOnly)
-      const invitation = await Invitation.load(invitationId, {});
+      // Charger l'Invitation CoMap avec le champ requests (même s'il est writeOnly)
+      // Cela force Jazz à retourner le proxy de la liste, même si on ne peut pas lire son contenu
+      const invitation = await Invitation.load(invitationId, {
+        requests: true, // Charger la référence à la liste (pas son contenu)
+      });
 
       if (!invitation) {
         alert("Cette invitation n'est pas valide.");
@@ -80,11 +83,24 @@
       );
 
       // Ajouter la demande à la liste writeOnly en utilisant $jazz.push()
-      // Note: requests apparaît comme null car writeOnly, mais $jazz.push() fonctionne
+      // Note: requests apparaît comme null car writeOnly, mais $jazz.push() doit quand même fonctionner
       try {
         console.log("Tentative d'ajout de la demande à la liste...");
-        invitation.requests?.$jazz.push(joinRequest);
-        console.log("✓ Demande ajoutée à la liste de l'invitation");
+        console.log("invitation.requests value:", invitation.requests);
+        console.log("invitation.requests type:", typeof invitation.requests);
+
+        // Essayer le push même si requests apparaît comme null
+        if (invitation.requests) {
+          console.log("requests existe, tentative de push...");
+          invitation.requests.$jazz.push(joinRequest);
+          console.log("✓ Demande ajoutée à la liste de l'invitation");
+        } else {
+          console.error("❌ requests est null/undefined - ne peut pas push");
+          console.log("Tentative de push direct malgré null...");
+          // Tenter quand même le push au cas où
+          invitation.requests?.$jazz.push(joinRequest);
+          console.log("Push direct tenté");
+        }
       } catch (error) {
         console.error("Erreur lors de l'ajout à la liste:", error);
         alert("Erreur lors de l'ajout de votre demande. Vérifiez la console.");

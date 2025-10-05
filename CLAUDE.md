@@ -91,24 +91,26 @@ When implementing permission request systems (e.g., join requests), use `writeOn
 
 **Key Points:**
 - **Permissions on the list**: `writeOnly` allows users to `.push()` items without reading the list content
-- **Don't load the list**: With `writeOnly`, do NOT try to load the list (it will appear as `null`)
-- **Push using optional chaining**: Use `invitation.requests?.$jazz.push(item)` - the `?.` is required because the list appears null/undefined to non-admin users
+- **MUST load the list reference**: With `writeOnly`, you MUST use `requests: true` in the resolve to get the list proxy object
+- **List appears null but proxy exists**: The list will appear as `null` when logged, but calling `.push()` on it will work
 - **Permissions on items**: Individual items in the list have their own group permissions (usually `everyone: "writer"`)
 
 **Loading Invitation with writeOnly list (invitee side):**
 
 ```ts
-// ✅ CORRECT: Load invitation WITHOUT loading the writeOnly list
-const invitation = await Invitation.load(invitationId, {});
-// DO NOT load requests field - it will be null for writeOnly users
-
-// ✅ Push works with optional chaining, even though requests appears null
-invitation.requests?.$jazz.push(joinRequest);
-
-// ❌ WRONG: Don't try to load the writeOnly list
+// ✅ CORRECT: Load invitation WITH the writeOnly list reference
 const invitation = await Invitation.load(invitationId, {
-  requests: true // This will return null for writeOnly lists
+  requests: true // MUST load to get the proxy, even though it appears null
 });
+
+// ✅ Push works because the proxy exists (even though it logs as null)
+if (invitation.requests) {
+  invitation.requests.$jazz.push(joinRequest);
+}
+
+// ❌ WRONG: Don't load without requests field
+const invitation = await Invitation.load(invitationId, {});
+// invitation.requests will be undefined and push will fail
 ```
 
 **Pattern for Join Requests:**
@@ -127,7 +129,11 @@ const invitation = Invitation.create({
   requests: co.list(JoinRequest).create([], { owner: requestsGroup }),
 }, { owner: invitationGroup });
 
-// 2. User adds request (using optional chaining because list appears null)
+// 2. User adds request - MUST load invitation with requests: true
+const invitation = await Invitation.load(invitationId, {
+  requests: true // Required to get the proxy, even though content is null
+});
+
 const joinRequestGroup = Group.create();
 joinRequestGroup.addMember("everyone", "writer");
 
@@ -137,12 +143,19 @@ const joinRequest = JoinRequest.create({
   status: "pending",
 }, joinRequestGroup); // Individual item has its own permissions
 
-invitation.requests?.$jazz.push(joinRequest); // ✅ Works with writeOnly (note the ?.)
-me.root.myRequests?.$jazz.push(joinRequest); // User saves ref to see status later
+// Push to the writeOnly list (list appears null but push works)
+if (invitation.requests) {
+  invitation.requests.$jazz.push(joinRequest);
+}
+
+// User saves ref to see status later
+if (me.root.myRequests) {
+  me.root.myRequests.$jazz.push(joinRequest);
+}
 
 // 3. Admin reads and approves (has admin permission on list)
 const invitation = await Invitation.load(id, {
-  requests: [{}] // Admin can load the list and items
+  requests: [{}] // Admin can load the list and items with resolve
 });
 
 if (invitation.requests) {
@@ -162,10 +175,11 @@ if (myRequest?.status === "approved") {
 ```
 
 **Why this works:**
-- User cannot read other requests in the `writeOnly` list (it appears as `null`)
-- User can push their own request using `?.$jazz.push()`
+- User MUST load with `requests: true` to get the list proxy (even though content appears null)
+- User cannot read other requests in the `writeOnly` list (content is null)
+- User can push their own request because the proxy object exists
 - User can read their request's status via `me.root.myRequests` (separate reference)
-- Admin can load and read all requests
+- Admin can load and read all requests with full resolve
 
 ### Svelte 5 Patterns
 
