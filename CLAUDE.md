@@ -91,23 +91,23 @@ When implementing permission request systems (e.g., join requests), use `writeOn
 
 **Key Points:**
 - **Permissions on the list**: `writeOnly` allows users to `.push()` items without reading the list content
-- **Don't check if list exists**: With `writeOnly`, the list may appear as `null` but `.push()` still works
-- **Push directly**: `invitation.requests.$jazz.push(item)` works even if `invitation.requests` appears falsy
+- **Don't load the list**: With `writeOnly`, do NOT try to load the list (it will appear as `null`)
+- **Push using optional chaining**: Use `invitation.requests?.$jazz.push(item)` - the `?.` is required because the list appears null/undefined to non-admin users
 - **Permissions on items**: Individual items in the list have their own group permissions (usually `everyone: "writer"`)
 
 **Loading Invitation with writeOnly list (invitee side):**
 
 ```ts
-// ✅ CORRECT: Load invitation WITHOUT explicitly loading the writeOnly list
+// ✅ CORRECT: Load invitation WITHOUT loading the writeOnly list
 const invitation = await Invitation.load(invitationId, {});
-// requests field is accessible but appears null/undefined - this is normal!
+// DO NOT load requests field - it will be null for writeOnly users
 
-// ✅ Push works even though requests appears null
-invitation.requests.$jazz.push(joinRequest);
+// ✅ Push works with optional chaining, even though requests appears null
+invitation.requests?.$jazz.push(joinRequest);
 
-// ❌ WRONG: Don't try to load the writeOnly list explicitly
+// ❌ WRONG: Don't try to load the writeOnly list
 const invitation = await Invitation.load(invitationId, {
-  requests: true // This will fail or return null for writeOnly lists
+  requests: true // This will return null for writeOnly lists
 });
 ```
 
@@ -127,38 +127,45 @@ const invitation = Invitation.create({
   requests: co.list(JoinRequest).create([], { owner: requestsGroup }),
 }, { owner: invitationGroup });
 
-// 2. User adds request (works even though list is writeOnly)
+// 2. User adds request (using optional chaining because list appears null)
+const joinRequestGroup = Group.create();
+joinRequestGroup.addMember("everyone", "writer");
+
 const joinRequest = JoinRequest.create({
   account: me,
-  organizationId: invitation.organizationId,
-  organizationName: "Org Name",
+  invitationId: invitation.$jazz.id,
   status: "pending",
-}, requestGroup); // Individual item has its own permissions
+}, joinRequestGroup); // Individual item has its own permissions
 
-invitation.requests.$jazz.push(joinRequest); // ✅ Works with writeOnly
-me.root.myRequests.$jazz.push(joinRequest); // User saves ref to see status later
+invitation.requests?.$jazz.push(joinRequest); // ✅ Works with writeOnly (note the ?.)
+me.root.myRequests?.$jazz.push(joinRequest); // User saves ref to see status later
 
 // 3. Admin reads and approves (has admin permission on list)
-const requests = invitation.requests; // Admin can load the list
-for (const request of requests) {
-  if (request.status === "pending") {
-    targetGroup.addMember(request.account, "writer");
-    request.$jazz.set("status", "approved");
+const invitation = await Invitation.load(id, {
+  requests: [{}] // Admin can load the list and items
+});
+
+if (invitation.requests) {
+  for (const request of invitation.requests) {
+    if (request.status === "pending") {
+      targetGroup.addMember(request.account, "writer");
+      request.$jazz.set("status", "approved");
+    }
   }
 }
 
 // 4. User detects approval via their own reference
-const myRequest = me.root.myRequests[0];
-if (myRequest.status === "approved") {
+const myRequest = me.root.myRequests?.[0];
+if (myRequest?.status === "approved") {
   // User sees status update through myRequests, not through writeOnly list
 }
 ```
 
 **Why this works:**
-- User cannot read other requests in the `writeOnly` list
-- User can push their own request to the list
+- User cannot read other requests in the `writeOnly` list (it appears as `null`)
+- User can push their own request using `?.$jazz.push()`
 - User can read their request's status via `me.root.myRequests` (separate reference)
-- Admin can read all requests and update status
+- Admin can load and read all requests
 
 ### Svelte 5 Patterns
 

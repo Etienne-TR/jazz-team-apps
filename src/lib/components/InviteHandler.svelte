@@ -38,7 +38,7 @@
         return;
       }
 
-      // Charger l'Invitation CoMap (sans charger la liste writeOnly)
+      // Charger l'Invitation CoMap (ne pas charger la liste writeOnly)
       const invitation = await Invitation.load(invitationId, {});
 
       if (!invitation) {
@@ -79,10 +79,11 @@
         joinRequestGroup, // Utiliser un groupe lisible
       );
 
-      // Ajouter la demande à la liste writeOnly (fonctionne même si elle apparaît null)
+      // Ajouter la demande à la liste writeOnly en utilisant $jazz.push()
+      // Note: requests apparaît comme null car writeOnly, mais $jazz.push() fonctionne
       try {
         console.log("Tentative d'ajout de la demande à la liste...");
-        invitation.requests.$jazz.push(joinRequest);
+        invitation.requests?.$jazz.push(joinRequest);
         console.log("✓ Demande ajoutée à la liste de l'invitation");
       } catch (error) {
         console.error("Erreur lors de l'ajout à la liste:", error);
